@@ -13,3 +13,7 @@ Een tekstbewerker die momenteel alleen bestaat in concept, maar waarvan het de b
 
 - [deNouse](https://denous.nl/)
 - [My Mimesia](https://my.mimesia.name/)
+
+## Standaarden
+
+- [abc](https://abcnotation.com/)
