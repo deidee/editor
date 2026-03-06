@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="nl">
+<head>
+    <meta charset="utf-8">
+    <title>editor</title>
+    <link rel="stylesheet" href="https://default.style/">
+
+    <!-- Required Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/combine/npm/tone@14.7.58,npm/abcjs@6.2.2/dist/abcjs-basic-min.js"></script>
+
+</head>
+<body id="top">
+
+<textarea class="editor" style="width: 600px; height: 400px;">
+# Welcome to the Rich Text Editor
+## Markdown Support
+- **Bold text**
+- *Italic text*
+- [Links](https://example.com)
+## Math Support
+Inline math: $E = mc^2$
+Display math:
+$$
+\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
+$$
+## Diagram support
+```mermaid
+flowchart TD
+    A[Start] --> B{Is it working?}
+    B -->|Yes| C[Great!]
+    B -->|No| D[Fix it]
+    D --> B
+```
+## Chords support
+```abc
+X:1
+T:ABC With Chords And Lyrics
+M:4/4
+L:1/4
+Q:1/4=96
+K:C
+"C" C C E G | "F" A A G E | "G" G G B d | "C" c4 ||
+w: La la sing a song to-day
+```
+</textarea>
+
+<script>
+    class RichTextEditor {
+        constructor() {
+            this.editors = [];
+            this.initMermaid();
+            this.init();
+        }
+
+        initMermaid() {
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: 'default',
+                securityLevel: 'loose'
+            });
+        }
+
+        init() {
+            // Find all textareas with class "editor"
+            const textareas = document.querySelectorAll('textarea.editor');
+
+            textareas.forEach((textarea, index) => {
+                this.createEditor(textarea, index);
+            });
+        }
+
+        createEditor(textarea, index) {
+            // Get original dimensions
+            const computedStyle = window.getComputedStyle(textarea);
+            const width = computedStyle.width;
+            const height = computedStyle.height;
+
+            // Create wrapper container
+            const wrapper = document.createElement('div');
+            wrapper.style.cssText = `
+            width: ${width};
+            height: ${height};
+            border: 1px solid #ccc;
+            position: relative;
+            background: white;
+        `;
+            wrapper.className = 'rich-editor-wrapper';
+
+            // Create tab container
+            const tabContainer = document.createElement('div');
+            tabContainer.style.cssText = `
+            display: flex;
+            border-bottom: 1px solid #ccc;
+            background: #f5f5f5;
+        `;
+
+            // Create tabs
+            const editTab = this.createTab('Edit', true);
+            const previewTab = this.createTab('Preview', false);
+
+            tabContainer.appendChild(editTab);
+            tabContainer.appendChild(previewTab);
+
+            // Create content containers
+            const editContainer = document.createElement('div');
+            editContainer.style.cssText = `
+            width: 100%;
+            height: calc(100% - 40px);
+            display: block;
+            position: relative;
+        `;
+
+            const previewContainer = document.createElement('div');
+            previewContainer.style.cssText = `
+            width: 100%;
+            height: calc(100% - 40px);
+            display: none;
+            overflow: auto;
+            padding: 10px;
+            box-sizing: border-box;
+        `;
+            previewContainer.className = 'preview-container';
+
+            // Create new textarea for editing
+            const newTextarea = document.createElement('textarea');
+            newTextarea.value = textarea.value;
+            newTextarea.style.cssText = `
+            width: 100%;
+            height: 100%;
+            border: none;
+            padding: 10px;
+            resize: none;
+            outline: none;
+            font-family: monospace;
+            font-size: 14px;
+            box-sizing: border-box;
+        `;
+
+            // Store editor data
+            const editorData = {
+                textarea: newTextarea,
+                preview: previewContainer,
+                editTab: editTab,
+                previewTab: previewTab,
+                editContainer: editContainer,
+                originalTextarea: textarea,
+                index: index
+            };
+
+            this.editors.push(editorData);
+
+            // Add event listeners
+            editTab.addEventListener('click', () => this.switchToEdit(editorData));
+            previewTab.addEventListener('click', () => this.switchToPreview(editorData));
+
+            // Update original textarea when content changes
+            newTextarea.addEventListener('input', () => {
+                textarea.value = newTextarea.value;
+                // Trigger change event on original textarea
+                const event = new Event('change', { bubbles: true });
+                textarea.dispatchEvent(event);
+            });
+
+            // Assemble the editor
+            editContainer.appendChild(newTextarea);
+            wrapper.appendChild(tabContainer);
+            wrapper.appendChild(editContainer);
+            wrapper.appendChild(previewContainer);
+
+            // Replace original textarea
+            textarea.style.display = 'none';
+            textarea.parentNode.insertBefore(wrapper, textarea.nextSibling);
+        }
+
+        createTab(text, active) {
+            const tab = document.createElement('button');
+            tab.textContent = text;
+            tab.style.cssText = `
+            padding: 8px 16px;
+            border: none;
+            background: ${active ? 'white' : 'transparent'};
+            cursor: pointer;
+            font-size: 14px;
+            outline: none;
+            border-bottom: ${active ? '2px solid #007bff' : 'none'};
+        `;
+            return tab;
+        }
+
+        switchToEdit(editorData) {
+            editorData.editContainer.style.display = 'block';
+            editorData.preview.style.display = 'none';
+            editorData.editTab.style.background = 'white';
+            editorData.editTab.style.borderBottom = '2px solid #007bff';
+            editorData.previewTab.style.background = 'transparent';
+            editorData.previewTab.style.borderBottom = 'none';
+        }
+
+        async switchToPreview(editorData) {
+            editorData.editContainer.style.display = 'none';
+            editorData.preview.style.display = 'block';
+            editorData.editTab.style.background = 'transparent';
+            editorData.editTab.style.borderBottom = 'none';
+            editorData.previewTab.style.background = 'white';
+            editorData.previewTab.style.borderBottom = '2px solid #007bff';
+
+            // Render the content
+            await this.renderPreview(editorData);
+        }
+
+        async renderPreview(editorData) {
+            const content = editorData.textarea.value;
+            let html = content;
+
+            // Process ABC notation blocks first
+            html = await this.processABC(html, editorData.index);
+
+            // Process Mermaid diagrams
+            html = await this.processMermaid(html, editorData.index);
+
+            // Process math with KaTeX
+            html = this.processMath(html);
+
+            // Convert Markdown to HTML
+            html = marked.parse(html);
+
+            // Set the preview content
+            editorData.preview.innerHTML = html;
+
+            // Render any remaining ABC notation
+            this.renderABCElements(editorData.preview, editorData.index);
+
+            // Render any remaining Mermaid diagrams
+            this.renderMermaidElements(editorData.preview);
+        }
+
+        processMath(text) {
+            // Process display math ($$...$$)
+            text = text.replace(/\$\$([\s\S]*?)\$\$/g, (match, math) => {
+                try {
+                    return katex.renderToString(math, { displayMode: true, throwOnError: false });
+                } catch (e) {
+                    return `<span style="color: red;">Math Error: ${e.message}</span>`;
+                }
+            });
+
+            // Process inline math ($...$)
+            text = text.replace(/\$([^\$]+)\$/g, (match, math) => {
+                try {
+                    return katex.renderToString(math, { displayMode: false, throwOnError: false });
+                } catch (e) {
+                    return `<span style="color: red;">Math Error: ${e.message}</span>`;
+                }
+            });
+
+            return text;
+        }
+
+        async processMermaid(text, editorIndex) {
+            const mermaidRegex = /```mermaid\n([\s\S]*?)```/g;
+            const matches = [...text.matchAll(mermaidRegex)];
+
+            for (let i = 0; i < matches.length; i++) {
+                const match = matches[i];
+                const mermaidCode = match[1];
+                const id = `mermaid-${editorIndex}-${i}-${Date.now()}`;
+
+                try {
+                    const { svg } = await mermaid.render(id, mermaidCode);
+                    text = text.replace(match[0], `<div class="mermaid-container">${svg}</div>`);
+                } catch (e) {
+                    text = text.replace(match[0], `<div style="color: red;">Mermaid Error: ${e.message}</div>`);
+                }
+            }
+
+            return text;
+        }
+
+        async processABC(text, editorIndex) {
+            const abcRegex = /```abc\n([\s\S]*?)```/g;
+            const matches = [...text.matchAll(abcRegex)];
+
+            for (let i = 0; i < matches.length; i++) {
+                const match = matches[i];
+                const abcCode = match[1];
+                const id = `abc-${editorIndex}-${i}-${Date.now()}`;
+                text = text.replace(match[0], `<div class="abc-notation" id="${id}" data-abc="${btoa(abcCode)}"></div>`);
+            }
+
+            return text;
+        }
+
+        renderABCElements(container, editorIndex) {
+            const abcElements = container.querySelectorAll('.abc-notation');
+            abcElements.forEach((element) => {
+                try {
+                    const abcCode = atob(element.getAttribute('data-abc'));
+                    ABCJS.renderAbc(element.id, abcCode, {
+                        responsive: 'resize',
+                        staffwidth: 500
+                    });
+                } catch (e) {
+                    element.innerHTML = `<span style="color: red;">ABC Error: ${e.message}</span>`;
+                }
+            });
+        }
+
+        renderMermaidElements(container) {
+            // Additional mermaid rendering if needed
+            mermaid.init(undefined, container.querySelectorAll('.mermaid'));
+        }
+    }
+
+    // Initialize the editor when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            new RichTextEditor();
+        });
+    } else {
+        new RichTextEditor();
+    }
+
+</script>
+</body>
+</html>

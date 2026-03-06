@@ -4,10 +4,10 @@ Een tekstbewerker die momenteel alleen bestaat in concept, maar waarvan het de b
 
 ## Wensenlijst
 
-- [ ]  Ondersteuning voor Markdown
+- [x]  Ondersteuning voor Markdown
 - [ ]  Ondersteuning voor UML
-- [ ]  Ondersteuning voor charts
-- [ ]  Ondersteuning voor ABC (chores)
+- [x]  Ondersteuning voor charts
+- [x]  Ondersteuning voor ABC (chores)
 
 ## Te gebruiken voor
 
