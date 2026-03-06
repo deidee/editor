@@ -2,13 +2,6 @@
 
 Een tekstbewerker die momenteel alleen bestaat in concept, maar waarvan het de bedoeling is dat deze ontwikkeld gaat worden.
 
-## Wensenlijst
-
-- [x]  Ondersteuning voor Markdown
-- [ ]  Ondersteuning voor UML
-- [x]  Ondersteuning voor charts
-- [x]  Ondersteuning voor ABC (chores)
-
 ## Te gebruiken voor
 
 - [deNouse](https://denous.nl/)
