@@ -1,0 +1,17 @@
+{
+  "name": "@deidee/editor",
+  "version": "0.0.1",
+  "description": "Custom rich text editor with Markdown, Mermaid, KaTeX, ABC, and Prism support",
+  "main": "dist/editor.js",
+  "scripts": {
+    "build": "grunt",
+    "watch": "grunt watch"
+  },
+  "author": "ACJ",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "grunt": "*",
+    "grunt-contrib-watch": "*",
+    "grunt-terser": "*"
+  }
+}
