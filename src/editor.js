@@ -6,6 +6,7 @@
             this.editors = [];
             this.specialFenceLanguages = new Set(['mermaid', 'abc', 'chem']);
             this.selector = options.selector || 'textarea.editor';
+
             this.initMermaid();
             this.initMarked();
             this.init();
@@ -13,25 +14,33 @@
 
         initMermaid() {
             if (typeof mermaid === 'undefined') {
-                throw new Error('Mermaid is not loaded.');
+                return;
             }
 
-            mermaid.initialize({
-                startOnLoad: false,
-                theme: 'default',
-                securityLevel: 'loose'
-            });
+            try {
+                mermaid.initialize({
+                    startOnLoad: false,
+                    theme: 'default',
+                    securityLevel: 'loose'
+                });
+            } catch (e) {
+                // Disable Mermaid silently.
+            }
         }
 
         initMarked() {
             if (typeof marked === 'undefined') {
-                throw new Error('Marked is not loaded.');
+                return;
             }
 
-            marked.setOptions({
-                breaks: true,
-                gfm: true
-            });
+            try {
+                marked.setOptions({
+                    breaks: true,
+                    gfm: true
+                });
+            } catch (e) {
+                // Disable Marked config silently.
+            }
         }
 
         init() {
@@ -40,25 +49,27 @@
         }
 
         createEditor(textarea, index) {
-            const computedStyle = window.getComputedStyle(textarea);
-            const width = computedStyle.width;
-            const height = computedStyle.height;
+            const sizing = this.getTextareaSizing(textarea);
 
             const wrapper = document.createElement('div');
             wrapper.className = 'rich-editor-wrapper';
             wrapper.style.cssText = `
-                width: ${width};
-                height: ${height};
                 border: 1px solid #ccc;
                 position: relative;
                 background: white;
+                box-sizing: border-box;
+                min-width: 0;
             `;
+
+            wrapper.style.width = sizing.width;
+            wrapper.style.height = sizing.height;
 
             const tabContainer = document.createElement('div');
             tabContainer.style.cssText = `
                 display: flex;
                 border-bottom: 1px solid #ccc;
                 background: #f5f5f5;
+                box-sizing: border-box;
             `;
 
             const editTab = this.createTab('Edit', true);
@@ -70,6 +81,8 @@
                 height: calc(100% - 40px);
                 display: block;
                 position: relative;
+                box-sizing: border-box;
+                min-width: 0;
             `;
 
             const previewContainer = document.createElement('div');
@@ -81,6 +94,7 @@
                 overflow: auto;
                 padding: 10px;
                 box-sizing: border-box;
+                min-width: 0;
             `;
 
             const newTextarea = document.createElement('textarea');
@@ -95,6 +109,7 @@
                 font-family: monospace;
                 font-size: 14px;
                 box-sizing: border-box;
+                background: transparent;
             `;
 
             const editorData = {
@@ -104,6 +119,7 @@
                 previewTab,
                 editContainer,
                 originalTextarea: textarea,
+                wrapper,
                 index
             };
 
@@ -127,6 +143,131 @@
 
             textarea.style.display = 'none';
             textarea.parentNode.insertBefore(wrapper, textarea.nextSibling);
+
+            this.bindResizeSync(editorData);
+        }
+
+        getTextareaSizing(textarea) {
+            const computedStyle = window.getComputedStyle(textarea);
+            const inlineWidth = (textarea.style.width || '').trim();
+            const inlineHeight = (textarea.style.height || '').trim();
+            const parent = textarea.parentElement;
+
+            const width = this.resolveDimension({
+                element: textarea,
+                parent,
+                inlineValue: inlineWidth,
+                computedValue: computedStyle.width,
+                dimension: 'width',
+                fallback: '100%'
+            });
+
+            const height = this.resolveDimension({
+                element: textarea,
+                parent,
+                inlineValue: inlineHeight,
+                computedValue: computedStyle.height,
+                dimension: 'height',
+                fallback: '400px'
+            });
+
+            return { width, height };
+        }
+
+        resolveDimension({ element, parent, inlineValue, computedValue, dimension, fallback }) {
+            const value = inlineValue.toLowerCase();
+
+            // Preserve fluid sizing rules.
+            if (value.endsWith('%') || value === 'auto' || value === 'calc(100% - 0px)') {
+                return inlineValue;
+            }
+
+            if (dimension === 'width' && !inlineValue) {
+                const rect = element.getBoundingClientRect();
+                const offset = element.offsetWidth;
+                const client = element.clientWidth;
+
+                let measured = Math.max(rect.width || 0, offset || 0, client || 0);
+
+                // If the element is width:100%, the real intended width is the parent content width.
+                const computedWidthStyle = (window.getComputedStyle(element).width || '').trim();
+                if (
+                    (!measured || measured <= 120) &&
+                    parent &&
+                    (
+                        computedWidthStyle.endsWith('%') ||
+                        element.style.width === '100%' ||
+                        computedWidthStyle === 'auto'
+                    )
+                ) {
+                    const parentStyle = window.getComputedStyle(parent);
+                    const parentWidth = parent.clientWidth
+                        - parseFloat(parentStyle.paddingLeft || 0)
+                        - parseFloat(parentStyle.paddingRight || 0);
+
+                    if (parentWidth > 0) {
+                        measured = parentWidth;
+                    }
+                }
+
+                if (measured > 0) {
+                    return `${Math.round(measured)}px`;
+                }
+
+                if (computedValue && computedValue !== 'auto') {
+                    return computedValue;
+                }
+
+                return fallback;
+            }
+
+            if (dimension === 'height' && !inlineValue) {
+                const rect = element.getBoundingClientRect();
+                const offset = element.offsetHeight;
+                const client = element.clientHeight;
+                const measured = Math.max(rect.height || 0, offset || 0, client || 0);
+
+                if (measured > 0) {
+                    return `${Math.round(measured)}px`;
+                }
+
+                if (computedValue && computedValue !== 'auto') {
+                    return computedValue;
+                }
+
+                return fallback;
+            }
+
+            if (inlineValue) {
+                return inlineValue;
+            }
+
+            if (computedValue && computedValue !== 'auto') {
+                return computedValue;
+            }
+
+            return fallback;
+        }
+
+        bindResizeSync(editorData) {
+            const syncSize = () => {
+                const sizing = this.getTextareaSizing(editorData.originalTextarea);
+                editorData.wrapper.style.width = sizing.width;
+                editorData.wrapper.style.height = sizing.height;
+            };
+
+            if (typeof ResizeObserver !== 'undefined') {
+                const observer = new ResizeObserver(syncSize);
+                observer.observe(editorData.originalTextarea);
+                if (editorData.originalTextarea.parentElement) {
+                    observer.observe(editorData.originalTextarea.parentElement);
+                }
+                editorData.resizeObserver = observer;
+            } else {
+                const onResize = () => syncSize();
+                window.addEventListener('resize', onResize);
+                editorData.windowResizeHandler = onResize;
+            }
         }
 
         createTab(text, active) {
@@ -174,17 +315,33 @@
             text = this.processCodeBlocks(text);
             text = this.processMath(text);
 
-            const html = marked.parse(text);
+            const html = this.parseMarkdown(text);
             editorData.preview.innerHTML = html;
 
             this.renderABCElements(editorData.preview);
 
-            if (typeof Prism !== 'undefined') {
-                Prism.highlightAllUnder(editorData.preview);
+            if (typeof Prism !== 'undefined' && typeof Prism.highlightAllUnder === 'function') {
+                try {
+                    Prism.highlightAllUnder(editorData.preview);
+                } catch (e) {}
             }
         }
 
+        parseMarkdown(text) {
+            if (typeof marked !== 'undefined' && typeof marked.parse === 'function') {
+                try {
+                    return marked.parse(text);
+                } catch (e) {}
+            }
+
+            return `<pre>${this.escapeHtml(text)}</pre>`;
+        }
+
         processMath(text) {
+            if (typeof katex === 'undefined' || typeof katex.renderToString !== 'function') {
+                return text;
+            }
+
             text = text.replace(/\$\$([\s\S]*?)\$\$/g, (match, math) => {
                 try {
                     return katex.renderToString(math.trim(), {
@@ -211,6 +368,10 @@
         }
 
         processChemBlocks(text) {
+            if (typeof katex === 'undefined' || typeof katex.renderToString !== 'function') {
+                return text;
+            }
+
             const chemRegex = /```chem[ \t]*\n([\s\S]*?)```/g;
             const matches = [...text.matchAll(chemRegex)];
 
@@ -240,6 +401,10 @@
         }
 
         async processMermaid(text, editorIndex) {
+            if (typeof mermaid === 'undefined' || typeof mermaid.render !== 'function') {
+                return text;
+            }
+
             const mermaidRegex = /```mermaid[ \t]*\n([\s\S]*?)```/g;
             const matches = [...text.matchAll(mermaidRegex)];
 
@@ -249,7 +414,13 @@
                 const id = `mermaid-${editorIndex}-${i}-${Date.now()}`;
 
                 try {
-                    const { svg } = await mermaid.render(id, mermaidCode);
+                    const result = await mermaid.render(id, mermaidCode);
+                    const svg = result && result.svg ? result.svg : '';
+
+                    if (!svg) {
+                        continue;
+                    }
+
                     text = text.replace(
                         match[0],
                         `<div class="mermaid-container">${svg}</div>`
@@ -266,6 +437,10 @@
         }
 
         async processABC(text, editorIndex) {
+            if (typeof ABCJS === 'undefined' || typeof ABCJS.renderAbc !== 'function') {
+                return text;
+            }
+
             const abcRegex = /```abc[ \t]*\n([\s\S]*?)```/g;
             const matches = [...text.matchAll(abcRegex)];
 
@@ -311,7 +486,7 @@
         }
 
         renderABCElements(container) {
-            if (typeof ABCJS === 'undefined') {
+            if (typeof ABCJS === 'undefined' || typeof ABCJS.renderAbc !== 'function') {
                 return;
             }
 
