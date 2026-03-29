@@ -48,69 +48,78 @@
             textareas.forEach((textarea, index) => this.createEditor(textarea, index));
         }
 
+        applyStyles(element, styles) {
+            Object.assign(element.style, styles);
+        }
+
         createEditor(textarea, index) {
             const sizing = this.getTextareaSizing(textarea);
 
             const wrapper = document.createElement('div');
             wrapper.className = 'rich-editor-wrapper';
-            wrapper.style.cssText = `
-                border: 1px solid #ccc;
-                position: relative;
-                background: white;
-                box-sizing: border-box;
-                min-width: 0;
-            `;
-
-            wrapper.style.width = sizing.width;
-            wrapper.style.height = sizing.height;
+            this.applyStyles(wrapper, {
+                border: '1px solid #ccc',
+                position: 'relative',
+                background: 'white',
+                boxSizing: 'border-box',
+                minWidth: '0',
+                display: 'flex',
+                flexDirection: 'column',
+                width: sizing.width,
+                height: sizing.height
+            });
 
             const tabContainer = document.createElement('div');
-            tabContainer.style.cssText = `
-                display: flex;
-                border-bottom: 1px solid #ccc;
-                background: #f5f5f5;
-                box-sizing: border-box;
-            `;
+            this.applyStyles(tabContainer, {
+                display: 'flex',
+                borderBottom: '1px solid #ccc',
+                background: '#f5f5f5',
+                boxSizing: 'border-box',
+                flex: '0 0 auto'
+            });
 
             const editTab = this.createTab('Edit', true);
             const previewTab = this.createTab('Preview', false);
 
             const editContainer = document.createElement('div');
-            editContainer.style.cssText = `
-                width: 100%;
-                height: calc(100% - 40px);
-                display: block;
-                position: relative;
-                box-sizing: border-box;
-                min-width: 0;
-            `;
+            this.applyStyles(editContainer, {
+                width: '100%',
+                flex: '1 1 auto',
+                minHeight: '0',
+                display: 'flex',
+                position: 'relative',
+                boxSizing: 'border-box',
+                minWidth: '0'
+            });
 
             const previewContainer = document.createElement('div');
             previewContainer.className = 'preview-container';
-            previewContainer.style.cssText = `
-                width: 100%;
-                height: calc(100% - 40px);
-                display: none;
-                overflow: auto;
-                padding: 10px;
-                box-sizing: border-box;
-                min-width: 0;
-            `;
+            this.applyStyles(previewContainer, {
+                width: '100%',
+                flex: '1 1 auto',
+                minHeight: '0',
+                display: 'none',
+                overflow: 'auto',
+                padding: '10px',
+                boxSizing: 'border-box',
+                minWidth: '0'
+            });
 
             const newTextarea = document.createElement('textarea');
             newTextarea.value = textarea.value;
-            newTextarea.style.cssText = `
-                width: 100%;
-                height: 100%;
-                border: none;
-                padding: 10px;
-                resize: none;
-                outline: none;
-                font-family: monospace;
-                font-size: 14px;
-                box-sizing: border-box;
-                background: transparent;
-            `;
+            this.applyStyles(newTextarea, {
+                width: '100%',
+                flex: '1 1 auto',
+                minHeight: '0',
+                border: 'none',
+                padding: '10px',
+                resize: 'none',
+                outline: 'none',
+                fontFamily: 'monospace',
+                fontSize: '14px',
+                boxSizing: 'border-box',
+                background: 'transparent'
+            });
 
             const editorData = {
                 textarea: newTextarea,
@@ -274,20 +283,21 @@
             const tab = document.createElement('button');
             tab.type = 'button';
             tab.textContent = text;
-            tab.style.cssText = `
-                padding: 8px 16px;
-                border: none;
-                background: ${active ? 'white' : 'transparent'};
-                cursor: pointer;
-                font-size: 14px;
-                outline: none;
-                border-bottom: ${active ? '2px solid #007bff' : 'none'};
-            `;
+
+            this.applyStyles(tab, {
+                margin: '0',
+                border: 'none',
+                backgroundColor: active ? 'white' : 'transparent',
+                cursor: 'pointer',
+                outline: 'none',
+                borderBottom: active ? '2px solid #007bff' : 'none'
+            });
+
             return tab;
         }
 
         switchToEdit(editorData) {
-            editorData.editContainer.style.display = 'block';
+            editorData.editContainer.style.display = 'flex';
             editorData.preview.style.display = 'none';
             editorData.editTab.style.background = 'white';
             editorData.editTab.style.borderBottom = '2px solid #007bff';
