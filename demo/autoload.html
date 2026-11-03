@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="nl">
+<head>
+    <meta charset="utf-8">
+    <title>editor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://default.style/">
+    <style>
+        .chem-block,
+        .mermaid-container,
+        .abc-notation,
+        .code-block-wrap {
+            margin: 1em 0;
+        }
+
+        .preview-container {
+            line-height: 1.5;
+        }
+
+        .preview-container pre[class*="language-"] {
+            overflow: auto;
+            padding: 1em;
+            border-radius: 0.5rem;
+        }
+
+        .rich-editor-wrapper textarea {
+            background: transparent;
+        }
+
+        .rte-error {
+            color: #b00020;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body id="top">
+
+<textarea class="editor" style="width: 100%; height: 500px;">
+# Welcome to the Rich Text Editor
+
+## Markdown Support
+- **Bold text**
+- *Italic text*
+- [Links](https://example.com)
+
+## Math Support
+Inline math: $E = mc^2$
+
+Display math:
+$$
+\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
+$$
+
+## Diagram support
+```mermaid
+flowchart TD
+    A[Start] --> B{Is it working?}
+    B -->|Yes| C[Great!]
+    B -->|No| D[Fix it]
+    D --> B
+```
+
+## Chords support
+```abc
+X:1
+T:ABC With Chords And Lyrics
+M:4/4
+L:1/4
+Q:1/4=96
+K:C
+"C" C C E G | "F" A A G E | "G" G G B d | "C" c4 ||
+w: La la sing a song to-day
+```
+
+## Chemistry support
+Inline chemistry: $\ce{H2O}$ and $\ce{CO2 + C -> 2CO}$
+
+Display chemistry:
+$$
+\ce{NH4+ + OH- -> NH3 + H2O}
+$$
+
+```chem
+C6H12O6 + 6 O2 -> 6 CO2 + 6 H2O
+```
+
+## Code highlighting support
+```php
+&lt;?php
+echo "Hello world";
+```
+
+```js
+function greet(name) {
+    return `Hello, ${name}!`;
+}
+console.log(greet('ACJ'));
+```
+
+</textarea>
+<script src="../src/editor.js"></script>
+</body>
+</html>

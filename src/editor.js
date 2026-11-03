@@ -2,12 +2,89 @@
 (() => {
     'use strict';
 
+
+    // Shared across all editor instances, including manually initialized ones.
+    const assetRequests = new Map();
+    const CDN = 'https://cdn.jsdelivr.net/npm/';
+    const ASSETS = {
+        marked: `${CDN}marked@16.4.1/lib/marked.umd.js`,
+        DOMPurify: `${CDN}dompurify@3.2.6/dist/purify.min.js`,
+        mermaid: `${CDN}mermaid@10.9.4/dist/mermaid.min.js`,
+        katex: `${CDN}katex@0.16.22/dist/katex.min.js`,
+        mhchem: `${CDN}katex@0.16.22/dist/contrib/mhchem.min.js`,
+        ABCJS: `${CDN}abcjs@6.4.4/dist/abcjs-basic-min.js`,
+        Prism: `${CDN}prismjs@1.29.0/prism.min.js`,
+        prismMarkup: `${CDN}prismjs@1.29.0/components/prism-markup.min.js`,
+        prismCss: `${CDN}prismjs@1.29.0/components/prism-css.min.js`,
+        prismJavaScript: `${CDN}prismjs@1.29.0/components/prism-javascript.min.js`,
+        prismPhp: `${CDN}prismjs@1.29.0/components/prism-php.min.js`,
+        prismPython: `${CDN}prismjs@1.29.0/components/prism-python.min.js`,
+        prismJson: `${CDN}prismjs@1.29.0/components/prism-json.min.js`,
+        prismBash: `${CDN}prismjs@1.29.0/components/prism-bash.min.js`,
+        prismSql: `${CDN}prismjs@1.29.0/components/prism-sql.min.js`,
+        prismYaml: `${CDN}prismjs@1.29.0/components/prism-yaml.min.js`,
+        prismMarkdown: `${CDN}prismjs@1.29.0/components/prism-markdown.min.js`,
+        katexCss: `${CDN}katex@0.16.22/dist/katex.min.css`,
+        prismCssTheme: `${CDN}prismjs@1.29.0/themes/prism.min.css`
+    };
+
+    function loadScript(url, available = () => false) {
+        if (available()) return Promise.resolve(true);
+        if (assetRequests.has(url)) return assetRequests.get(url);
+
+        const request = new Promise(resolve => {
+            const existing = Array.from(document.scripts).find(script => script.src === url);
+            const script = existing || document.createElement('script');
+            let settled = false;
+            const finish = success => {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timeout);
+                script.removeEventListener('load', onLoad);
+                script.removeEventListener('error', onError);
+                if (!success) console.warn(`RichTextEditor: could not load ${url}`);
+                resolve(success && available());
+            };
+            const onLoad = () => finish(true);
+            const onError = () => finish(false);
+            script.addEventListener('load', onLoad);
+            script.addEventListener('error', onError);
+            const timeout = setTimeout(() => finish(false), 15000);
+            if (!existing) {
+                script.src = url;
+                script.async = true;
+                document.head.append(script);
+            }
+        });
+        assetRequests.set(url, request);
+        return request;
+    }
+
+    function loadCss(url) {
+        if (assetRequests.has(url)) return assetRequests.get(url);
+        if (Array.from(document.querySelectorAll('link[rel="stylesheet"]')).some(link => link.href === url)) {
+            return Promise.resolve(true);
+        }
+        const request = new Promise(resolve => {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = url;
+            link.onload = () => resolve(true);
+            link.onerror = () => { console.warn(`RichTextEditor: could not load ${url}`); resolve(false); };
+            document.head.append(link);
+        });
+        assetRequests.set(url, request);
+        return request;
+    }
+
     const initialized = new WeakSet();
     let nextId = 0;
 
     class RichTextEditor {
         constructor(options = {}) {
             this.selector = options.selector ?? 'textarea.editor';
+            this.autoLoad = options.autoLoad !== false;
+            this.assets = { ...ASSETS, ...options.assets };
             this.editors = [];
             this.mermaidReady = false;
             this.init();
@@ -15,6 +92,39 @@
 
         getLibrary(name) {
             return window[name];
+        }
+
+        async ensureDependencies() {
+            if (!this.autoLoad) return;
+            const a = this.assets;
+            const has = name => Boolean(this.getLibrary(name));
+            // Independent libraries can download in parallel.
+            await Promise.all([
+                loadScript(a.marked, () => typeof this.getLibrary('marked')?.Marked === 'function'),
+                loadScript(a.DOMPurify, () => typeof this.getLibrary('DOMPurify')?.sanitize === 'function'),
+                loadScript(a.mermaid, () => typeof this.getLibrary('mermaid')?.render === 'function'),
+                loadScript(a.katex, () => typeof this.getLibrary('katex')?.renderToString === 'function'),
+                loadScript(a.ABCJS, () => typeof this.getLibrary('ABCJS')?.renderAbc === 'function'),
+                loadScript(a.Prism, () => typeof this.getLibrary('Prism')?.highlightAllUnder === 'function'),
+                loadCss(a.katexCss),
+                loadCss(a.prismCssTheme)
+            ]);
+            // mhchem extends KaTeX and must load afterwards.
+            if (has('katex')) await loadScript(a.mhchem, () => Boolean(this.getLibrary('katex')?.__rteMhchemLoaded));
+            if (has('katex')) this.getLibrary('katex').__rteMhchemLoaded = true;
+            // Prism components have dependencies; preserve their load order.
+            if (has('Prism')) {
+                const languages = [
+                    ['prismMarkup', 'markup'], ['prismCss', 'css'],
+                    ['prismJavaScript', 'javascript'], ['prismPhp', 'php'],
+                    ['prismPython', 'python'], ['prismJson', 'json'],
+                    ['prismBash', 'bash'], ['prismSql', 'sql'],
+                    ['prismYaml', 'yaml'], ['prismMarkdown', 'markdown']
+                ];
+                for (const [key, language] of languages) {
+                    await loadScript(a[key], () => Boolean(this.getLibrary('Prism')?.languages?.[language]));
+                }
+            }
         }
 
         init() {
@@ -133,6 +243,9 @@
         async renderPreview(data) {
             const version = ++data.renderVersion;
             const source = data.input.value;
+            this.dependenciesPromise ??= this.ensureDependencies();
+            await this.dependenciesPromise;
+            if (version !== data.renderVersion) return;
             const markedLib = this.getLibrary('marked');
             const purifier = this.getLibrary('DOMPurify');
             const MarkedClass = markedLib?.Marked;
