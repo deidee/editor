@@ -7,6 +7,13 @@ Een lichtgewicht, veelzijdige teksteditor die Markdown combineert met ondersteun
 - [deNouse](https://denous.nl/)
 - [My Mimesia](https://my.mimesia.community/)
 
+## Gebruik
+
+```html
+<textarea class="editor"></textarea>
+<script src="./src/editor.js"></script>
+```
+
 ## Ondersteunde talen en notaties
 
 - [Markdown](https://commonmark.org/) — tekstopmaak volgens CommonMark
@@ -16,4 +23,3 @@ Een lichtgewicht, veelzijdige teksteditor die Markdown combineert met ondersteun
 - [mhchem](https://mhchem.github.io/MathJax-mhchem/) — chemische formules en reactievergelijkingen
 - [ABC notation](https://abcnotation.com/) — muzieknotatie en bladmuziek
 - [Prism](https://prismjs.com/) — syntax highlighting voor onder andere HTML, CSS, JavaScript, PHP, Python, JSON, SQL, Bash en YAML
-- 
