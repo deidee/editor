@@ -1,12 +1,19 @@
 # ![editor](https://deidee.com/logo.svg?str=editor)
 
-Een tekstbewerker die momenteel alleen bestaat in concept, maar waarvan het de bedoeling is dat deze ontwikkeld gaat worden.
+Een lichtgewicht, veelzijdige teksteditor die Markdown combineert met ondersteuning voor wiskundige formules (KaTeX), chemische notatie, diagrammen (Mermaid), muzieknotatie (ABC) en syntax highlighting (Prism). Met een overzichtelijke bewerk- en voorbeeldweergave en modulair gebruik van externe bibliotheken.
 
 ## Te gebruiken voor
 
 - [deNouse](https://denous.nl/)
-- [My Mimesia](https://my.mimesia.name/)
+- [My Mimesia](https://my.mimesia.community/)
 
-## Standaarden
+## Ondersteunde talen en notaties
 
-- [abc](https://abcnotation.com/)
+- [Markdown](https://commonmark.org/) — tekstopmaak volgens CommonMark
+- [GitHub Flavored Markdown (GFM)](https://github.github.com/gfm/) — tabellen, takenlijsten en aanvullende Markdown-syntaxis
+- [Mermaid](https://mermaid.js.org/) — stroomdiagrammen, sequentiediagrammen en andere visualisaties
+- [LaTeX](https://www.latex-project.org/) — wiskundige formules en vergelijkingen (via KaTeX)
+- [mhchem](https://mhchem.github.io/MathJax-mhchem/) — chemische formules en reactievergelijkingen
+- [ABC notation](https://abcnotation.com/) — muzieknotatie en bladmuziek
+- [Prism](https://prismjs.com/) — syntax highlighting voor onder andere HTML, CSS, JavaScript, PHP, Python, JSON, SQL, Bash en YAML
+- 
